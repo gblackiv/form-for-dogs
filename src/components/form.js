@@ -1,5 +1,23 @@
 import React, { useReducer, Fragment } from 'react';
-import { TextField, Grid, Button } from '@material-ui/core';
+import {
+  TextField,
+  Grid,
+  Button,
+  MenuItem,
+  FormControl,
+  FormLabel,
+  RadioGroup,
+  Radio,
+  FormControlLabel
+} from '@material-ui/core';
+import {
+  states,
+  fauxPawDivisions,
+  classes,
+  references,
+  fields
+} from './constants/constants.js';
+import SuccessfulSubmitSnackbar from './successfulSubmitSnackbar';
 
 function reducer(state, action) {
   switch (action.type) {
@@ -8,11 +26,16 @@ function reducer(state, action) {
         ...state,
         [action.field]: { ...state[action.field], value: action.payload }
       };
+    case 'clearState':
+      return { ...cleanState };
+    case 'snackbarOpen':
+      return { ...state, snackbarOpen: action.payload };
     default:
       throw new Error();
   }
 }
 const cleanState = {
+  snackbarOpen: false,
   firstName: {
     value: '',
     display: 'First Name'
@@ -89,6 +112,10 @@ const cleanState = {
     value: '',
     display: 'Field'
   },
+  fieldOther: {
+    value: '',
+    display: 'Other?'
+  },
   fauxPawDivision: {
     value: '',
     display: 'FauxPaw Division'
@@ -101,11 +128,19 @@ const cleanState = {
     value: '',
     display: 'How did you hear about us?'
   },
+  hearAboutUsOther: {
+    value: '',
+    display: 'Other?'
+  },
   submitting: false
 };
 
 const Form = props => {
   const [state, dispatch] = useReducer(reducer, cleanState);
+  const snackbarHandler = open => {
+    dispatch({ type: 'snackbarOpen', payload: open });
+  };
+
   const core = {
     textField: key => ({
       value: state[key].value,
@@ -123,13 +158,34 @@ const Form = props => {
     submitButton: {
       color: 'primary',
       variant: 'contained',
-      onClick: props.onClick,
+      onClick: () => {
+        dispatch({ type: 'clearState' });
+        snackbarHandler(true);
+        props.onClick();
+      },
       style: {
         width: '200px',
         margin: '30px'
       }
+    },
+    radioGroup: {
+      row: true,
+      onChange: e => {
+        dispatch({
+          type: 'field',
+          field: 'emailUpdated',
+          payload: e.target.value
+        });
+      }
+    },
+    snackbarProps: {
+      open: state.snackbarOpen,
+      close: () => {
+        snackbarHandler(false);
+      }
     }
   };
+
   return (
     <Fragment>
       <Grid container spacing={4}>
@@ -183,9 +239,15 @@ const Form = props => {
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
+            select
             {...core.textField('state')}
-            {...core.textOrSelect('state')}
-          />
+            {...core.textOrSelect('state')}>
+            {states.map((state, index) => (
+              <MenuItem key={index} value={state}>
+                {state}
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
@@ -229,26 +291,54 @@ const Form = props => {
             {...core.textOrSelect('email')}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField />
-        </Grid>
+
         <Grid item xs={12} sm={6}>
           <TextField
+            select
             {...core.textField('class')}
-            {...core.textOrSelect('class')}
-          />
+            {...core.textOrSelect('class')}>
+            {classes.map((className, index) => (
+              <MenuItem key={index} value={className}>
+                {className}
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid
+          item
+          xs={state.field.value === 'Other' ? 6 : 12}
+          sm={state.field.value === 'Other' ? 3 : 6}>
           <TextField
+            select
             {...core.textField('field')}
-            {...core.textOrSelect('field')}
-          />
+            {...core.textOrSelect('field')}>
+            {fields.map((field, index) => (
+              <MenuItem key={index} value={field}>
+                {field}
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
+        {state.field.value === 'Other' && (
+          <Grid item xs={6} sm={3}>
+            <TextField
+              required
+              {...core.textField('fieldOther')}
+              {...core.textOrSelect('fieldOther')}
+            />
+          </Grid>
+        )}
         <Grid item xs={12} sm={6}>
           <TextField
+            select
             {...core.textField('fauxPawDivision')}
-            {...core.textOrSelect('fauxPawDivision')}
-          />
+            {...core.textOrSelect('fauxPawDivision')}>
+            {fauxPawDivisions.map((division, index) => (
+              <MenuItem key={index} value={division}>
+                {division}
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
@@ -256,14 +346,50 @@ const Form = props => {
             {...core.textOrSelect('yearsInOperation')}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid
+          item
+          xs={state.hearAboutUs.value === 'Other' ? 6 : 12}
+          sm={state.hearAboutUs.value === 'Other' ? 3 : 6}>
           <TextField
+            select
             {...core.textField('hearAboutUs')}
-            {...core.textOrSelect('hearAboutUs')}
-          />
+            {...core.textOrSelect('hearAboutUs')}>
+            {references.map((reference, index) => (
+              <MenuItem key={index} value={reference}>
+                {reference}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Grid>
+        {state.hearAboutUs.value === 'Other' && (
+          <Grid item xs={6} sm={3}>
+            <TextField
+              required
+              {...core.textField('hearAboutUsOther')}
+              {...core.textOrSelect('hearAboutUsOther')}
+            />
+          </Grid>
+        )}
+        <Grid item xs={12} sm={6} container justify="flex-start">
+          <FormControl component="fieldset">
+            <FormLabel component="legend">Consent to Email Updates?</FormLabel>
+            <RadioGroup {...core.radioGroup}>
+              <FormControlLabel
+                value="true"
+                control={<Radio color="primary" />}
+                label="Yes"
+              />
+              <FormControlLabel
+                value="false"
+                control={<Radio color="primary" />}
+                label="No"
+              />
+            </RadioGroup>
+          </FormControl>
         </Grid>
       </Grid>
       <Button {...core.submitButton}>Submit</Button>
+      <SuccessfulSubmitSnackbar {...core.snackbarProps} />
     </Fragment>
   );
 };
