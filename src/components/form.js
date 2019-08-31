@@ -18,6 +18,7 @@ import {
   fields
 } from './constants/constants.js';
 import SuccessfulSubmitSnackbar from './successfulSubmitSnackbar';
+import { Firestore } from '../config.js';
 
 function reducer(state, action) {
   switch (action.type) {
@@ -101,7 +102,7 @@ const cleanState = {
     display: 'Email'
   },
   emailUpdates: {
-    value: '',
+    value: true,
     display: 'Consent to Email Updates?'
   },
   class: {
@@ -141,6 +142,36 @@ const Form = props => {
     dispatch({ type: 'snackbarOpen', payload: open });
   };
 
+  const submitToFirestore = () => {
+    const docRef = Firestore.collection('Faux-Paw-Forms').doc();
+    return docRef.set({
+      firstName: state.firstName.value.trim(),
+      lastName: state.lastName.value.trim(),
+      company: state.company.value.trim(),
+      title: state.title.value.trim(),
+      address1: state.address1.value.trim(),
+      address2: state.address2.value.trim(),
+      poBox: state.poBox.value.trim(),
+      city: state.city.value.trim(),
+      state: state.state.value.trim(),
+      providence: state.providence.value.trim(),
+      country: state.country.value.trim(),
+      zipCode: state.zipCode.value.trim(),
+      birthday: state.birthday.value.trim(),
+      phone1: state.phone1.value.trim(),
+      phone2: state.phone2.value.trim(),
+      email: state.email.value.trim(),
+      emailUpdates: state.emailUpdates.value,
+      class: state.class.value,
+      field: state.field.value,
+      fieldOther: state.fieldOther.value.trim(),
+      fauxPawDivision: state.fauxPawDivision.value,
+      yearsInOperation: state.yearsInOperation.value.trim(),
+      hearAboutUs: state.hearAboutUs.value,
+      hearAboutUsOther: state.hearAboutUsOther.value.trim()
+    });
+  };
+
   const core = {
     textField: key => ({
       value: state[key].value,
@@ -148,7 +179,8 @@ const Form = props => {
       id: key,
       label: state[key].display,
       margin: 'normal',
-      variant: 'outlined'
+      variant: 'outlined',
+      autoComplete: 'new-password'
     }),
     textOrSelect: key => ({
       onChange: e => {
@@ -159,9 +191,10 @@ const Form = props => {
       color: 'primary',
       variant: 'contained',
       onClick: () => {
-        dispatch({ type: 'clearState' });
-        snackbarHandler(true);
-        props.onClick();
+        submitToFirestore().then(() => {
+          dispatch({ type: 'clearState' });
+          snackbarHandler(true);
+        });
       },
       style: {
         width: '200px',
@@ -173,7 +206,7 @@ const Form = props => {
       onChange: e => {
         dispatch({
           type: 'field',
-          field: 'emailUpdated',
+          field: 'emailUpdates',
           payload: e.target.value
         });
       }
@@ -269,6 +302,8 @@ const Form = props => {
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
+            type="date"
+            InputLabelProps={{ shrink: true }}
             {...core.textField('birthday')}
             {...core.textOrSelect('birthday')}
           />
